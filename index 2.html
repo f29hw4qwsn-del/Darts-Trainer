@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Darts Trainer" />
+  <title>Darts Trainer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: #0f0f13; font-family: 'Courier New', monospace; color: #f0f0f0; }
+    body { display: flex; justify-content: center; }
+    #app { width: 100%; max-width: 430px; min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── Screens ── */
+    .screen { display: none; flex-direction: column; align-items: center; padding: 32px 20px 40px; gap: 12px; }
+    .screen.active { display: flex; }
+
+    /* Menu */
+    .logo { font-size: 56px; line-height: 1; text-align: center; }
+    .title { font-size: 36px; font-weight: 900; letter-spacing: 4px; color: #fbbf24; text-align: center; line-height: 1.1; }
+    .title span { font-size: 28px; color: #f0f0f0; letter-spacing: 8px; }
+    .tagline { color: #888; font-size: 13px; }
+    .section { width: 100%; margin-top: 8px; }
+    .section-label { color: #888; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+    .row { display: flex; gap: 8px; }
+    .diff-btn { flex: 1; padding: 10px 4px; border-radius: 8px; border: 1px solid #333; background: #1a1a22; color: #aaa; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; }
+    .diff-btn.active { border-color: #fbbf24; color: #fbbf24; background: #1f1c10; }
+    .diff-name { font-size: 12px; font-weight: 700; }
+    .diff-time { font-size: 10px; opacity: 0.7; }
+    .start-btn { width: 100%; padding: 16px; margin-top: 12px; background: #fbbf24; color: #000; border: none; border-radius: 10px; font-size: 16px; font-weight: 900; letter-spacing: 3px; cursor: pointer; font-family: inherit; }
+    .ghost-btn { background: none; border: 1px solid #333; color: #aaa; border-radius: 8px; padding: 10px 24px; cursor: pointer; font-size: 13px; margin-top: 4px; font-family: inherit; width: 100%; }
+
+    /* Highscores */
+    .hs-title { font-size: 22px; font-weight: 700; color: #fbbf24; }
+    .hs-list { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .hs-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #1a1a22; border-radius: 8px; }
+    .hs-rank { color: #fbbf24; font-weight: 700; font-size: 16px; width: 28px; }
+    .hs-info { display: flex; flex-direction: column; gap: 2px; }
+    .hs-score { font-weight: 700; font-size: 16px; }
+    .hs-meta { color: #666; font-size: 11px; }
+    .no-data { color: #666; font-size: 13px; }
+    .weak-row { display: flex; gap: 12px; align-items: center; padding: 6px 12px; background: #1a1a22; border-radius: 6px; margin-bottom: 4px; width: 100%; }
+    .weak-key { flex: 1; font-size: 13px; }
+    .weak-ok { color: #4ade80; }
+    .weak-bad { color: #f87171; }
+
+    /* Result */
+    .result-score { font-size: 72px; font-weight: 900; color: #fbbf24; line-height: 1; }
+    .result-label { font-size: 18px; color: #aaa; margin-bottom: 8px; }
+    .stats-row { display: flex; gap: 12px; margin-bottom: 8px; }
+    .stat-box { background: #1a1a22; border-radius: 8px; padding: 12px 20px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .stat-val { font-size: 24px; font-weight: 700; color: #4ade80; }
+    .stat-key { font-size: 11px; color: #666; }
+
+    /* Game */
+    #game-screen { padding: 0; gap: 0; }
+    .game-header { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 4px; }
+    .header-score { display: flex; flex-direction: column; align-items: flex-start; }
+    .header-center { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .header-timer { display: flex; flex-direction: column; align-items: flex-end; }
+    .score-num { font-size: 24px; font-weight: 900; color: #4ade80; }
+    .score-lbl { font-size: 10px; color: #666; }
+    .round-txt { font-size: 12px; color: #888; }
+    .streak-badge { font-size: 12px; color: #f97316; font-weight: 700; display: none; }
+    .timer-num { font-size: 24px; font-weight: 900; color: #fbbf24; }
+    .timer-bar { width: 100%; height: 4px; background: #222; }
+    .timer-fill { height: 100%; transition: width 1s linear, background 0.3s; background: #4ade80; }
+    .task-card { width: calc(100% - 32px); margin: 12px 16px 0; background: #1a1a22; border-radius: 12px; padding: 16px; border: 1px solid #2a2a35; transition: border 0.3s, background 0.3s; }
+    .task-card.correct { border-color: #4ade80; background: #0f1f14; }
+    .task-card.wrong { border-color: #f87171; background: #1f0f0f; }
+    .task-row { display: flex; align-items: center; justify-content: center; gap: 16px; }
+    .task-num { font-size: 42px; font-weight: 900; color: #fbbf24; }
+    .task-arrow { font-size: 24px; color: #666; }
+    .task-target { font-size: 42px; font-weight: 900; color: #60a5fa; }
+    .task-sub { text-align: center; color: #666; font-size: 12px; margin-top: 4px; }
+    .feedback-msg { text-align: center; margin-top: 10px; font-size: 16px; font-weight: 700; display: none; }
+    .solution { font-size: 12px; color: #aaa; font-weight: 400; margin-top: 4px; }
+    .selected-row { width: calc(100% - 32px); margin: 10px 16px 0; background: #111117; border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 6px; min-height: 44px; flex-wrap: wrap; }
+    .selected-chip { background: #2a2a38; border: 1px solid #444; border-radius: 6px; color: #f0f0f0; padding: 4px 10px; font-size: 14px; cursor: pointer; font-family: inherit; }
+    .placeholder { color: #444; font-size: 13px; }
+    .sum-label { margin-left: auto; font-size: 16px; font-weight: 700; color: #fbbf24; }
+    .type-row { width: calc(100% - 32px); margin: 8px 16px 0; display: flex; gap: 8px; }
+    .type-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #333; background: #1a1a22; color: #aaa; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit; }
+    .type-btn.active-T { background: #f59e0b; color: #000; border-color: #f59e0b; }
+    .type-btn.active-D { background: #60a5fa; color: #000; border-color: #60a5fa; }
+    .type-btn.active-S { background: #a3e635; color: #000; border-color: #a3e635; }
+    .num-pad { width: calc(100% - 32px); margin: 8px 16px 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .num-btn { padding: 10px 4px; border-radius: 8px; border: 1px solid #2a2a35; background: #1a1a22; color: #f0f0f0; cursor: pointer; font-size: 15px; font-weight: 700; font-family: inherit; }
+    .num-btn:active { background: #2a2a38; }
+    .action-row { width: calc(100% - 32px); margin: 10px 16px 0; display: flex; gap: 8px; }
+    .clear-btn { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a22; color: #f87171; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit; }
+    .hint-btn { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a22; color: #fbbf24; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit; }
+    .submit-btn { flex: 2; padding: 12px; border-radius: 8px; border: none; background: #4ade80; color: #000; cursor: pointer; font-size: 16px; font-weight: 900; font-family: inherit; }
+    .submit-btn:disabled { opacity: 0.4; }
+    .hint-box { width: calc(100% - 32px); margin: 8px 16px 0; background: #1a1a22; border-radius: 8px; padding: 10px 14px; color: #fbbf24; font-size: 13px; line-height: 1.8; display: none; }
+    .hint-box.visible { display: block; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- MENU -->
+  <div id="menu-screen" class="screen active">
+    <div class="logo">🎯</div>
+    <div class="title">DARTS<br><span>TRAINER</span></div>
+    <p class="tagline">Trainiere deine Auswege blitzschnell</p>
+    <div class="section">
+      <p class="section-label">Schwierigkeit</p>
+      <div class="row">
+        <button class="diff-btn" data-diff="easy" onclick="setDiff('easy')">
+          <span class="diff-name">Anfänger</span><span class="diff-time">20s</span>
+        </button>
+        <button class="diff-btn active" data-diff="medium" onclick="setDiff('medium')">
+          <span class="diff-name">Profi</span><span class="diff-time">10s</span>
+        </button>
+        <button class="diff-btn" data-diff="hard" onclick="setDiff('hard')">
+          <span class="diff-name">Master</span><span class="diff-time">5s</span>
+        </button>
+      </div>
+    </div>
+    <button class="start-btn" onclick="startGame()">SPIEL STARTEN</button>
+    <button class="ghost-btn" onclick="showScreen('highscores-screen')">🏆 Highscores</button>
+  </div>
+
+  <!-- HIGHSCORES -->
+  <div id="highscores-screen" class="screen">
+    <div class="hs-title">🏆 Highscores</div>
+    <div class="hs-list" id="hs-list"></div>
+    <div class="section" style="margin-top:8px">
+      <p class="section-label">Schwache Stellen</p>
+      <div id="weak-list"></div>
+    </div>
+    <button class="ghost-btn" onclick="showScreen('menu-screen')">← Zurück</button>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-screen" class="screen">
+    <div class="logo">🎯</div>
+    <div class="hs-title">Ergebnis</div>
+    <div class="result-score" id="result-score">0</div>
+    <div class="result-label" id="result-label"></div>
+    <div class="stats-row">
+      <div class="stat-box"><span class="stat-val" id="res-streak">0</span><span class="stat-key">Max Streak</span></div>
+      <div class="stat-box"><span class="stat-val" id="res-correct">0</span><span class="stat-key">Richtig</span></div>
+      <div class="stat-box"><span class="stat-val" id="res-wrong">0</span><span class="stat-key">Falsch</span></div>
+    </div>
+    <button class="start-btn" onclick="startGame()">NOCHMAL</button>
+    <button class="ghost-btn" onclick="showScreen('menu-screen')">← Menü</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="game-screen" class="screen">
+    <div class="game-header">
+      <div class="header-score">
+        <span class="score-num" id="score-display">0</span>
+        <span class="score-lbl">Punkte</span>
+      </div>
+      <div class="header-center">
+        <span class="round-txt" id="round-display">0/10</span>
+        <span class="streak-badge" id="streak-badge">🔥 ×0</span>
+      </div>
+      <div class="header-timer">
+        <span class="timer-num" id="timer-display">10s</span>
+      </div>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+
+    <div class="task-card" id="task-card">
+      <div class="task-row">
+        <div class="task-num" id="task-start">-</div>
+        <div class="task-arrow">→</div>
+        <div class="task-target" id="task-target">-</div>
+      </div>
+      <div class="task-sub" id="task-sub">Wie kommst du auf -?</div>
+      <div class="feedback-msg" id="feedback-msg"></div>
+    </div>
+
+    <div class="selected-row" id="selected-row">
+      <span class="placeholder" id="placeholder">Tippe Darts an...</span>
+      <span class="sum-label" id="sum-label" style="display:none"></span>
+    </div>
+
+    <div class="type-row">
+      <button class="type-btn active-T" id="btn-T" onclick="setType('T')">Triple</button>
+      <button class="type-btn" id="btn-S" onclick="setType('S')">Single</button>
+    </div>
+
+    <div class="num-pad" id="num-pad"></div>
+
+    <div class="action-row">
+      <button class="clear-btn" onclick="clearSelected()">✕ Clear</button>
+      <button class="hint-btn" onclick="toggleHint()">💡 Hint</button>
+      <button class="submit-btn" id="submit-btn" onclick="submitAnswer()" disabled>✓ OK</button>
+    </div>
+
+    <div class="hint-box" id="hint-box"></div>
+  </div>
+</div>
+
+<script>
+// ── Game logic ──────────────────────────────────────────────────────────────
+const SEGMENTS = [];
+for (let i = 1; i <= 20; i++) {
+  SEGMENTS.push({ label: `S${i}`, value: i });
+  SEGMENTS.push({ label: `T${i}`, value: i * 3 });
+}
+
+const CHECKOUT_TARGETS = [24, 26, 28, 30, 32, 34, 36, 38, 40];
+const TIME_LIMITS = { easy: 20, medium: 10, hard: 5 };
+
+function findRoutes(start, target) {
+  const gap = start - target;
+  const routes = [];
+  for (const s of SEGMENTS) if (s.value === gap) routes.push([s]);
+  for (const s1 of SEGMENTS) for (const s2 of SEGMENTS) if (s1.value + s2.value === gap) routes.push([s1, s2]);
+  for (const s1 of SEGMENTS) for (const s2 of SEGMENTS) {
+    const rem = gap - s1.value - s2.value;
+    if (rem > 0) { const s3 = SEGMENTS.find(s => s.value === rem); if (s3) routes.push([s1, s2, s3]); }
+  }
+  const seen = new Set();
+  return routes.filter(r => {
+    const key = [...r].sort((a,b) => a.label.localeCompare(b.label)).map(s => s.label).join('+');
+    if (seen.has(key)) return false; seen.add(key); return true;
+  }).sort((a, b) => a.length - b.length).slice(0, 20);
+}
+
+function generateTask() {
+  const start = Math.floor(Math.random() * 23) + 80;
+  const targets = CHECKOUT_TARGETS.filter(t => { const g = start - t; return g > 0 && findRoutes(start, t).length > 0; });
+  if (!targets.length) return generateTask();
+  const target = targets[Math.floor(Math.random() * targets.length)];
+  return { start, target, routes: findRoutes(start, target) };
+}
+
+// ── State ───────────────────────────────────────────────────────────────────
+let difficulty = 'medium';
+let score = 0, streak = 0, maxStreak = 0, round = 0, correctCount = 0, wrongCount = 0;
+const TOTAL_ROUNDS = 10;
+let task = null, selected = [], selectedType = 'T';
+let timeLeft = 0, timerInterval = null, feedbackTimer = null;
+let hasFeedback = false, showingHint = false;
+
+function getHighscores() { try { return JSON.parse(localStorage.getItem('darts_hs') || '[]'); } catch { return []; } }
+function saveHighscores(hs) { localStorage.setItem('darts_hs', JSON.stringify(hs)); }
+function getWeak() { try { return JSON.parse(localStorage.getItem('darts_weak') || '{}'); } catch { return {}; } }
+function saveWeak(w) { localStorage.setItem('darts_weak', JSON.stringify(w)); }
+
+function updateWeak(t, correct) {
+  const w = getWeak();
+  const key = `${t.start}→${t.target}`;
+  if (!w[key]) w[key] = { correct: 0, wrong: 0 };
+  correct ? w[key].correct++ : w[key].wrong++;
+  saveWeak(w);
+}
+
+// ── UI helpers ──────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function setDiff(d) {
+  difficulty = d;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b.dataset.diff === d));
+}
+
+function setType(t) {
+  selectedType = t;
+  ['T','S'].forEach(k => {
+    const btn = document.getElementById('btn-' + k);
+    btn.className = 'type-btn' + (k === t ? ` active-${k}` : '');
+  });
+}
+
+function buildNumPad() {
+  const pad = document.getElementById('num-pad');
+  pad.innerHTML = '';
+  for (let i = 1; i <= 20; i++) {
+    const b = document.createElement('button');
+    b.className = 'num-btn'; b.textContent = i;
+    b.onclick = () => tapNumber(i);
+    pad.appendChild(b);
+  }
+}
+
+function renderSelected() {
+  const row = document.getElementById('selected-row');
+  const ph = document.getElementById('placeholder');
+  const sl = document.getElementById('sum-label');
+  // Remove chips
+  row.querySelectorAll('.selected-chip').forEach(c => c.remove());
+  if (selected.length === 0) {
+    ph.style.display = ''; sl.style.display = 'none';
+  } else {
+    ph.style.display = 'none';
+    const sum = selected.reduce((a, b) => a + b.value, 0);
+    selected.forEach((seg, i) => {
+      const chip = document.createElement('button');
+      chip.className = 'selected-chip';
+      chip.innerHTML = `${seg.label} <span style="opacity:.5;font-size:10px">✕</span>`;
+      chip.onclick = () => { if (!hasFeedback) { selected.splice(i, 1); renderSelected(); updateSubmit(); } };
+      row.insertBefore(chip, sl);
+    });
+    sl.textContent = '= ' + sum;
+    sl.style.display = '';
+  }
+}
+
+function updateSubmit() {
+  document.getElementById('submit-btn').disabled = selected.length === 0 || hasFeedback;
+}
+
+function updateTimer() {
+  const limit = TIME_LIMITS[difficulty];
+  const pct = (timeLeft / limit) * 100;
+  const fill = document.getElementById('timer-fill');
+  fill.style.width = pct + '%';
+  fill.style.background = pct < 30 ? '#ef4444' : pct < 60 ? '#fbbf24' : '#4ade80';
+  const td = document.getElementById('timer-display');
+  td.textContent = timeLeft + 's';
+  td.style.color = timeLeft <= 2 ? '#f87171' : '#fbbf24';
+}
+
+function getScoreLabel(s) {
+  if (s >= 20) return '🏆 Darts-Profi';
+  if (s >= 10) return '🎯 Fortgeschritten';
+  if (s >= 0) return '🎮 Einsteiger';
+  return '💪 Weiter üben!';
+}
+
+// ── Game flow ────────────────────────────────────────────────────────────────
+function startGame() {
+  score = 0; streak = 0; maxStreak = 0; round = 0; correctCount = 0; wrongCount = 0;
+  showScreen('game-screen');
+  buildNumPad();
+  nextTask();
+}
+
+function nextTask() {
+  clearTimeout(feedbackTimer);
+  hasFeedback = false; showingHint = false;
+  selected = []; selectedType = 'T';
+  document.getElementById('hint-box').classList.remove('visible');
+  setType('T');
+  renderSelected(); updateSubmit();
+
+  if (round >= TOTAL_ROUNDS) { endGame(); return; }
+
+  task = generateTask();
+  document.getElementById('task-start').textContent = task.start;
+  document.getElementById('task-target').textContent = task.target;
+  document.getElementById('task-sub').textContent = `Wie kommst du auf ${task.target}?`;
+  document.getElementById('task-card').className = 'task-card';
+  document.getElementById('feedback-msg').style.display = 'none';
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('round-display').textContent = `${round + 1}/${TOTAL_ROUNDS}`;
+
+  const sb = document.getElementById('streak-badge');
+  if (streak >= 3) { sb.textContent = `🔥 ×${streak}`; sb.style.display = ''; }
+  else sb.style.display = 'none';
+
+  clearInterval(timerInterval);
+  timeLeft = TIME_LIMITS[difficulty];
+  updateTimer();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) { clearInterval(timerInterval); onTimeout(); }
+  }, 1000);
+}
+
+function onTimeout() {
+  hasFeedback = true;
+  score--; streak = 0; wrongCount++;
+  updateWeak(task, false);
+  showFeedback('timeout');
+  round++;
+  feedbackTimer = setTimeout(nextTask, 2000);
+}
+
+function tapNumber(n) {
+  if (hasFeedback || selected.length >= 3) return;
+  let label, value;
+  if (selectedType === 'T') { label = `T${n}`; value = n * 3; }
+  else { label = `S${n}`; value = n; }
+  selected.push({ label, value });
+  renderSelected(); updateSubmit();
+}
+
+function tapSpecial(label, value) {
+  if (hasFeedback || selected.length >= 3) return;
+  selected.push({ label, value });
+  renderSelected(); updateSubmit();
+}
+
+function clearSelected() {
+  if (hasFeedback) return;
+  selected = []; renderSelected(); updateSubmit();
+}
+
+function toggleHint() {
+  showingHint = !showingHint;
+  const hb = document.getElementById('hint-box');
+  if (showingHint && task) {
+    hb.innerHTML = task.routes.slice(0, 2).map(r => r.map(s => s.label).join(' + ') + ' = ' + (task.start - task.target)).join('<br>');
+    hb.classList.add('visible');
+  } else {
+    hb.classList.remove('visible');
+  }
+}
+
+function submitAnswer() {
+  if (!task || selected.length === 0 || hasFeedback) return;
+  clearInterval(timerInterval);
+  const userSum = selected.reduce((a, b) => a + b.value, 0);
+  const gap = task.start - task.target;
+  const correct = userSum === gap;
+  hasFeedback = true;
+  if (correct) {
+    streak++; maxStreak = Math.max(maxStreak, streak);
+    const bonus = streak >= 3 ? 1 : 0;
+    score += 1 + bonus;
+    correctCount++;
+  } else {
+    streak = 0; score--; wrongCount++;
+  }
+  updateWeak(task, correct);
+  showFeedback(correct ? 'correct' : 'wrong');
+  round++;
+  feedbackTimer = setTimeout(nextTask, correct ? 1500 : 2000);
+}
+
+function showFeedback(type) {
+  const card = document.getElementById('task-card');
+  const msg = document.getElementById('feedback-msg');
+  document.getElementById('score-display').textContent = score;
+  card.className = 'task-card ' + (type === 'correct' ? 'correct' : 'wrong');
+  if (type === 'correct') {
+    msg.innerHTML = '✅ Richtig!' + (streak >= 3 ? ` <span style="color:#f97316">🔥 Bonus!</span>` : '');
+  } else if (type === 'timeout') {
+    const sol = task.routes[0]?.map(s => s.label).join(' + ') + ' = ' + (task.start - task.target);
+    msg.innerHTML = `⏱ Zeit! <div class="solution">Lösung: ${sol}</div>`;
+  } else {
+    const sol = task.routes[0]?.map(s => s.label).join(' + ') + ' = ' + (task.start - task.target);
+    msg.innerHTML = `❌ Falsch! <div class="solution">Lösung: ${sol}</div>`;
+  }
+  msg.style.display = 'block';
+  updateSubmit();
+}
+
+function endGame() {
+  clearInterval(timerInterval);
+  const hs = getHighscores();
+  hs.unshift({ score, maxStreak, difficulty, date: new Date().toLocaleDateString('de-DE'), rounds: TOTAL_ROUNDS });
+  saveHighscores(hs.slice(0, 20));
+  document.getElementById('result-score').textContent = score;
+  document.getElementById('result-label').textContent = getScoreLabel(score);
+  document.getElementById('res-streak').textContent = maxStreak;
+  document.getElementById('res-correct').textContent = correctCount;
+  document.getElementById('res-wrong').textContent = wrongCount;
+  showScreen('result-screen');
+}
+
+// ── Highscores screen ────────────────────────────────────────────────────────
+document.getElementById('highscores-screen').addEventListener('click', () => {}, true);
+function renderHighscores() {
+  const hs = getHighscores();
+  const list = document.getElementById('hs-list');
+  list.innerHTML = hs.length === 0
+    ? '<p class="no-data">Noch keine Spiele gespielt.</p>'
+    : hs.map((h, i) => `
+      <div class="hs-row">
+        <span class="hs-rank">#${i+1}</span>
+        <div class="hs-info">
+          <span class="hs-score">${h.score} Punkte</span>
+          <span class="hs-meta">${h.difficulty} · Streak ${h.maxStreak} · ${h.date}</span>
+        </div>
+      </div>`).join('');
+  const w = getWeak();
+  const wl = document.getElementById('weak-list');
+  const sorted = Object.entries(w).sort((a,b) => (b[1].wrong - b[1].correct) - (a[1].wrong - a[1].correct)).slice(0,5);
+  wl.innerHTML = sorted.length === 0 ? '<p class="no-data">Noch keine Daten.</p>'
+    : sorted.map(([k, v]) => `<div class="weak-row"><span class="weak-key">${k}</span><span class="weak-ok">✓ ${v.correct}</span><span class="weak-bad">✗ ${v.wrong}</span></div>`).join('');
+}
+
+const origShowScreen = showScreen;
+window.showScreen = function(id) {
+  origShowScreen(id);
+  if (id === 'highscores-screen') renderHighscores();
+};
+</script>
+</body>
+</html>
