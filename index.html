@@ -453,7 +453,8 @@ function showFeedback(type) {
 function endGame() {
   clearInterval(timerInterval);
   const hs = getHighscores();
-  hs.unshift({ score, maxStreak, difficulty, date: new Date().toLocaleDateString('de-DE'), rounds: TOTAL_ROUNDS });
+  hs.push({ score, maxStreak, difficulty, date: new Date().toLocaleDateString('de-DE'), rounds: TOTAL_ROUNDS });
+  hs.sort((a, b) => b.score - a.score);
   saveHighscores(hs.slice(0, 20));
   document.getElementById('result-score').textContent = score;
   document.getElementById('result-label').textContent = getScoreLabel(score);
