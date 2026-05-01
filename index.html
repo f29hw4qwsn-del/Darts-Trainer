@@ -184,7 +184,6 @@
 
     <div class="type-row">
       <button class="type-btn active-T" id="btn-T" onclick="setType('T')">Triple</button>
-      <button class="type-btn" id="btn-D" onclick="setType('D')">Double</button>
       <button class="type-btn" id="btn-S" onclick="setType('S')">Single</button>
     </div>
 
@@ -205,13 +204,10 @@
 const SEGMENTS = [];
 for (let i = 1; i <= 20; i++) {
   SEGMENTS.push({ label: `S${i}`, value: i });
-  SEGMENTS.push({ label: `D${i}`, value: i * 2 });
   SEGMENTS.push({ label: `T${i}`, value: i * 3 });
 }
-SEGMENTS.push({ label: 'Bull', value: 25 });
-SEGMENTS.push({ label: '50', value: 50 });
 
-const CHECKOUT_TARGETS = [40, 32, 16, 8];
+const CHECKOUT_TARGETS = [24, 26, 28, 30, 32, 34, 36, 38, 40];
 const TIME_LIMITS = { easy: 20, medium: 10, hard: 5 };
 
 function findRoutes(start, target) {
@@ -272,7 +268,7 @@ function setDiff(d) {
 
 function setType(t) {
   selectedType = t;
-  ['T','D','S'].forEach(k => {
+  ['T','S'].forEach(k => {
     const btn = document.getElementById('btn-' + k);
     btn.className = 'type-btn' + (k === t ? ` active-${k}` : '');
   });
@@ -287,14 +283,6 @@ function buildNumPad() {
     b.onclick = () => tapNumber(i);
     pad.appendChild(b);
   }
-  const bull = document.createElement('button');
-  bull.className = 'num-btn'; bull.textContent = 'Bull'; bull.style.fontSize = '11px';
-  bull.onclick = () => tapSpecial('Bull', 25);
-  pad.appendChild(bull);
-  const be = document.createElement('button');
-  be.className = 'num-btn'; be.textContent = '50'; be.style.fontSize = '11px';
-  be.onclick = () => tapSpecial('50', 50);
-  pad.appendChild(be);
 }
 
 function renderSelected() {
@@ -351,6 +339,7 @@ function startGame() {
 }
 
 function nextTask() {
+  clearTimeout(feedbackTimer);
   hasFeedback = false; showingHint = false;
   selected = []; selectedType = 'T';
   document.getElementById('hint-box').classList.remove('visible');
@@ -366,15 +355,15 @@ function nextTask() {
   document.getElementById('task-card').className = 'task-card';
   document.getElementById('feedback-msg').style.display = 'none';
   document.getElementById('score-display').textContent = score;
-  document.getElementById('round-display').textContent = `${round}/${TOTAL_ROUNDS}`;
+  document.getElementById('round-display').textContent = `${round + 1}/${TOTAL_ROUNDS}`;
 
   const sb = document.getElementById('streak-badge');
   if (streak >= 3) { sb.textContent = `🔥 ×${streak}`; sb.style.display = ''; }
   else sb.style.display = 'none';
 
+  clearInterval(timerInterval);
   timeLeft = TIME_LIMITS[difficulty];
   updateTimer();
-  clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     timeLeft--;
     updateTimer();
@@ -395,7 +384,6 @@ function tapNumber(n) {
   if (hasFeedback || selected.length >= 3) return;
   let label, value;
   if (selectedType === 'T') { label = `T${n}`; value = n * 3; }
-  else if (selectedType === 'D') { label = `D${n}`; value = n * 2; }
   else { label = `S${n}`; value = n; }
   selected.push({ label, value });
   renderSelected(); updateSubmit();
